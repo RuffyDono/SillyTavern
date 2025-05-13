@@ -56,10 +56,11 @@ const {
 } = textgen_types;
 
 const LLAMACPP_DEFAULT_ORDER = [
+    'penalties',
     'dry',
+    'top_n_sigma',
     'top_k',
-    'tfs_z',
-    'typical_p',
+    'typ_p',
     'top_p',
     'min_p',
     'xtc',
@@ -86,7 +87,7 @@ const OOBA_DEFAULT_ORDER = [
     'encoder_repetition_penalty',
     'no_repeat_ngram',
 ];
-const APHRODITE_DEFAULT_ORDER = [
+export const APHRODITE_DEFAULT_ORDER = [
     'dry',
     'penalties',
     'no_repeat_ngram',
@@ -108,12 +109,12 @@ const BIAS_KEY = '#textgenerationwebui_api-settings';
 // (7 days later) The future has come.
 const MANCER_SERVER_KEY = 'mancer_server';
 const MANCER_SERVER_DEFAULT = 'https://neuro.mancer.tech';
-let MANCER_SERVER = localStorage.getItem(MANCER_SERVER_KEY) ?? MANCER_SERVER_DEFAULT;
-let TOGETHERAI_SERVER = 'https://api.together.xyz';
-let INFERMATICAI_SERVER = 'https://api.totalgpt.ai';
-let DREAMGEN_SERVER = 'https://dreamgen.com';
-let OPENROUTER_SERVER = 'https://openrouter.ai/api';
-let FEATHERLESS_SERVER = 'https://api.featherless.ai/v1';
+export let MANCER_SERVER = localStorage.getItem(MANCER_SERVER_KEY) ?? MANCER_SERVER_DEFAULT;
+export let TOGETHERAI_SERVER = 'https://api.together.xyz';
+export let INFERMATICAI_SERVER = 'https://api.totalgpt.ai';
+export let DREAMGEN_SERVER = 'https://dreamgen.com';
+export let OPENROUTER_SERVER = 'https://openrouter.ai/api';
+export let FEATHERLESS_SERVER = 'https://api.featherless.ai/v1';
 
 export const SERVER_INPUTS = {
     [textgen_types.OOBA]: '#textgenerationwebui_api_url_text',
@@ -212,6 +213,7 @@ const settings = {
     xtc_threshold: 0.1,
     xtc_probability: 0,
     nsigma: 0.0,
+    min_keep: 0,
     featherless_model: '',
     generic_model: '',
 };
@@ -294,6 +296,7 @@ export const setting_names = [
     'xtc_threshold',
     'xtc_probability',
     'nsigma',
+    'min_keep',
     'generic_model',
 ];
 
@@ -311,15 +314,21 @@ export function validateTextGenUrl() {
     const formattedUrl = formatTextGenURL(url);
 
     if (!formattedUrl) {
-        toastr.error('Enter a valid API URL', 'Text Completion API');
+        toastr.error(t`Enter a valid API URL`, 'Text Completion API');
         return;
     }
 
     control.val(formattedUrl);
 }
 
-export function getTextGenServer() {
-    switch (settings.type) {
+/**
+ * Gets the API URL for the selected text generation type.
+ * @param {string} type If it's set, ignores active type
+ * @returns {string} API URL
+ */
+export function getTextGenServer(type = null) {
+    const selectedType = type ?? settings.type;
+    switch (selectedType) {
         case FEATHERLESS:
             return FEATHERLESS_SERVER;
         case MANCER:
@@ -333,7 +342,7 @@ export function getTextGenServer() {
         case OPENROUTER:
             return OPENROUTER_SERVER;
         default:
-            return settings.server_urls[settings.type] ?? '';
+            return settings.server_urls[selectedType] ?? '';
     }
 }
 
@@ -797,16 +806,19 @@ jQuery(function () {
             'dry_penalty_last_n_textgenerationwebui': 0,
             'xtc_threshold_textgenerationwebui': 0.1,
             'xtc_probability_textgenerationwebui': 0,
+            'nsigma_textgenerationwebui': 0,
+            'min_keep_textgenerationwebui': 0,
         };
 
         for (const [id, value] of Object.entries(inputs)) {
             const inputElement = $(`#${id}`);
+            const valueToSet = typeof value === 'boolean' ? String(value) : value;
             if (inputElement.prop('type') === 'checkbox') {
                 inputElement.prop('checked', value).trigger('input');
             } else if (inputElement.prop('type') === 'number') {
-                inputElement.val(value).trigger('input');
+                inputElement.val(valueToSet).trigger('input');
             } else {
-                inputElement.val(value).trigger('input');
+                inputElement.val(valueToSet).trigger('input');
                 if (power_user.enableZenSliders) {
                     let masterElementID = inputElement.prop('id');
                     console.log(masterElementID);
@@ -1138,7 +1150,7 @@ function tryParseStreamingError(response, decoded) {
         // No JSON. Do nothing.
     }
 
-    const message = data?.error?.message || data?.message || data?.detail;
+    const message = data?.error?.message || data?.error || data?.message || data?.detail;
 
     if (message) {
         toastr.error(message, 'Text Completion API');
@@ -1187,7 +1199,7 @@ export function getTextGenModel() {
             return settings.aphrodite_model;
         case OLLAMA:
             if (!settings.ollama_model) {
-                toastr.error('No Ollama model selected.', 'Text Completion API');
+                toastr.error(t`No Ollama model selected.`, 'Text Completion API');
                 throw new Error('No Ollama model selected');
             }
             return settings.ollama_model;
@@ -1215,8 +1227,14 @@ function isDynamicTemperatureSupported() {
     return settings.dynatemp && DYNATEMP_BLOCK?.dataset?.tgType?.includes(settings.type);
 }
 
-function getLogprobsNumber() {
-    if (settings.type === VLLM || settings.type === INFERMATICAI) {
+/**
+ * Gets the number of logprobs to request based on the selected type.
+ * @param {string} type If it's set, ignores active type
+ * @returns {number} Number of logprobs to request
+ */
+export function getLogprobsNumber(type = null) {
+    const selectedType = type ?? settings.type;
+    if (selectedType === VLLM || selectedType === INFERMATICAI) {
         return 5;
     }
 
@@ -1228,7 +1246,7 @@ function getLogprobsNumber() {
  * @param {string} str Input string
  * @returns {string} Output string
  */
-function replaceMacrosInList(str) {
+export function replaceMacrosInList(str) {
     if (!str || typeof str !== 'string') {
         return str;
     }
@@ -1318,6 +1336,18 @@ export async function getTextGenGenerationData(finalPrompt, maxTokens, isImperso
         'xtc_threshold': settings.xtc_threshold,
         'xtc_probability': settings.xtc_probability,
         'nsigma': settings.nsigma,
+        'top_n_sigma': settings.nsigma,
+        'min_keep': settings.min_keep,
+        parseSequenceBreakers: function () {
+            try {
+                return JSON.parse(this.dry_sequence_breakers);
+            } catch {
+                if (typeof this.dry_sequence_breakers === 'string') {
+                    return this.dry_sequence_breakers.split(',');
+                }
+                return undefined;
+            }
+        },
     };
     const nonAphroditeParams = {
         'rep_pen': settings.rep_pen,
@@ -1337,7 +1367,6 @@ export async function getTextGenGenerationData(finalPrompt, maxTokens, isImperso
         'json_schema': [TABBY, LLAMACPP].includes(settings.type) ? settings.json_schema : undefined,
         // llama.cpp aliases. In case someone wants to use LM Studio as Text Completion API
         'repeat_penalty': settings.rep_pen,
-        'tfs_z': settings.tfs,
         'repeat_last_n': settings.rep_pen_range,
         'n_predict': maxTokens,
         'num_predict': maxTokens,
@@ -1420,6 +1449,7 @@ export async function getTextGenGenerationData(finalPrompt, maxTokens, isImperso
         params.dynatemp_max = params.dynatemp_high;
         delete params.dynatemp_low;
         delete params.dynatemp_high;
+        params.dry_sequence_breakers = params.parseSequenceBreakers();
     }
 
     if (settings.type === TABBY) {
@@ -1455,17 +1485,7 @@ export async function getTextGenGenerationData(finalPrompt, maxTokens, isImperso
             : [];
         const tokenBans = toIntArray(banned_tokens);
         logitBiasArray.push(...tokenBans.map(x => [Number(x), false]));
-        const sequenceBreakers = (() => {
-            try {
-                return JSON.parse(params.dry_sequence_breakers);
-            } catch {
-                if (typeof params.dry_sequence_breakers === 'string') {
-                    return params.dry_sequence_breakers.split(',');
-                }
-
-                return undefined;
-            }
-        })();
+        const sequenceBreakers = params.parseSequenceBreakers();
         const llamaCppParams = {
             'logit_bias': logitBiasArray,
             // Conflicts with ooba's grammar_string

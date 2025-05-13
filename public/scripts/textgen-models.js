@@ -7,6 +7,7 @@ import { renderTemplateAsync } from './templates.js';
 import { POPUP_TYPE, callGenericPopup } from './popup.js';
 import { t } from './i18n.js';
 import { accountStorage } from './util/AccountStorage.js';
+import { localizePagination, PAGINATION_TEMPLATE } from './utils.js';
 
 let mancerModels = [];
 let togetherModels = [];
@@ -23,58 +24,60 @@ export let openRouterModels = [];
  * @type {string[]}
  */
 const OPENROUTER_PROVIDERS = [
-    'OpenAI',
-    'Anthropic',
-    'Google',
-    'Google AI Studio',
-    'Amazon Bedrock',
-    'Groq',
-    'SambaNova',
-    'Cohere',
-    'Mistral',
-    'Together',
-    'Together 2',
-    'Fireworks',
-    'DeepInfra',
-    'Lepton',
-    'Novita',
-    'Avian',
-    'Lambda',
-    'Azure',
-    'Modal',
-    'AnyScale',
-    'Replicate',
-    'Perplexity',
-    'Recursal',
-    'OctoAI',
-    'DeepSeek',
-    'Infermatic',
     'AI21',
-    'Featherless',
-    'Inflection',
-    'xAI',
-    'Cloudflare',
-    'SF Compute',
-    'Minimax',
-    'Nineteen',
-    'Liquid',
-    'InferenceNet',
-    'Friendli',
     'AionLabs',
     'Alibaba',
-    'Nebius',
+    'Amazon Bedrock',
+    'Anthropic',
+    'Atoma',
+    'Avian',
+    'Azure',
+    'Cent-ML',
+    'Cerebras',
     'Chutes',
+    'Cloudflare',
+    'Cohere',
+    'Crusoe',
+    'DeepInfra',
+    'DeepSeek',
+    'Enfer',
+    'Featherless',
+    'Fireworks',
+    'Friendli',
+    'GMICloud',
+    'Google',
+    'Google AI Studio',
+    'Groq',
+    'Hyperbolic',
+    'Inception',
+    'InferenceNet',
+    'Infermatic',
+    'Inflection',
+    'InoCloud',
     'Kluster',
-    'Targon',
-    '01.AI',
-    'HuggingFace',
+    'Lambda',
+    'Liquid',
     'Mancer',
     'Mancer 2',
-    'Hyperbolic',
-    'Hyperbolic 2',
-    'Lynn 2',
-    'Lynn',
-    'Reflection',
+    'Minimax',
+    'Mistral',
+    'NCompass',
+    'Nebius',
+    'NextBit',
+    'Nineteen',
+    'Novita',
+    'OpenAI',
+    'OpenInference',
+    'Parasail',
+    'Perplexity',
+    'Phala',
+    'SambaNova',
+    'Stealth',
+    'Targon',
+    'Together',
+    'Ubicloud',
+    'Venice',
+    'xAI',
 ];
 
 export async function loadOllamaModels(data) {
@@ -127,11 +130,11 @@ export async function loadTogetherAIModels(data) {
         return;
     }
 
-    data.sort((a, b) => a.name.localeCompare(b.name));
+    data.sort((a, b) => a.id.localeCompare(b.id));
     togetherModels = data;
 
-    if (!data.find(x => x.name === textgen_settings.togetherai_model)) {
-        textgen_settings.togetherai_model = data[0]?.name || '';
+    if (!data.find(x => x.id === textgen_settings.togetherai_model)) {
+        textgen_settings.togetherai_model = data[0]?.id || '';
     }
 
     $('#model_togetherai_select').empty();
@@ -142,9 +145,9 @@ export async function loadTogetherAIModels(data) {
         }
 
         const option = document.createElement('option');
-        option.value = model.name;
+        option.value = model.id;
         option.text = model.display_name;
-        option.selected = model.name === textgen_settings.togetherai_model;
+        option.selected = model.id === textgen_settings.togetherai_model;
         $('#model_togetherai_select').append(option);
     }
 }
@@ -359,9 +362,7 @@ export async function loadFeatherlessModels(data) {
             showSizeChanger: false,
             prevText: '<',
             nextText: '>',
-            formatNavigator: function (currentPage, totalPage) {
-                return (currentPage - 1) * perPage + 1 + ' - ' + currentPage * perPage + ' of ' + totalPage * perPage;
-            },
+            formatNavigator: PAGINATION_TEMPLATE,
             showNavigator: true,
             callback: function (modelsOnPage, pagination) {
                 modelCardBlock.innerHTML = '';
@@ -383,15 +384,15 @@ export async function loadFeatherlessModels(data) {
 
                     const modelClassDiv = document.createElement('div');
                     modelClassDiv.classList.add('model-class');
-                    modelClassDiv.textContent = `Class: ${model.model_class || 'N/A'}`;
+                    modelClassDiv.textContent = t`Class` + `: ${model.model_class || 'N/A'}`;
 
                     const contextLengthDiv = document.createElement('div');
                     contextLengthDiv.classList.add('model-context-length');
-                    contextLengthDiv.textContent = `Context Length: ${model.context_length}`;
+                    contextLengthDiv.textContent = t`Context Length` + `: ${model.context_length}`;
 
                     const dateAddedDiv = document.createElement('div');
                     dateAddedDiv.classList.add('model-date-added');
-                    dateAddedDiv.textContent = `Added On: ${new Date(model.created * 1000).toLocaleDateString()}`;
+                    dateAddedDiv.textContent = t`Added On` + `: ${new Date(model.created * 1000).toLocaleDateString()}`;
 
                     detailsContainer.appendChild(modelClassDiv);
                     detailsContainer.appendChild(contextLengthDiv);
@@ -415,6 +416,7 @@ export async function loadFeatherlessModels(data) {
 
                 // Update the current page value whenever the page changes
                 featherlessCurrentPage = pagination.pageNumber;
+                localizePagination(paginationContainer);
             },
             afterSizeSelectorChange: function (e) {
                 const newPerPage = e.target.value;
@@ -589,7 +591,7 @@ function onTogetherModelSelect() {
     const modelName = String($('#model_togetherai_select').val());
     textgen_settings.togetherai_model = modelName;
     $('#api_button_textgenerationwebui').trigger('click');
-    const model = togetherModels.find(x => x.name === modelName);
+    const model = togetherModels.find(x => x.id === modelName);
     setGenerationParamsFromPreset({ max_length: model.context_length });
 }
 
@@ -659,7 +661,7 @@ function getMancerModelTemplate(option) {
 }
 
 function getTogetherModelTemplate(option) {
-    const model = togetherModels.find(x => x.name === option?.element?.value);
+    const model = togetherModels.find(x => x.id === option?.element?.value);
 
     if (!option.id || !model) {
         return option.text;
@@ -667,7 +669,7 @@ function getTogetherModelTemplate(option) {
 
     return $((`
         <div class="flex-container flexFlowColumn">
-            <div><strong>${DOMPurify.sanitize(model.name)}</strong> | <span>${model.context_length || '???'} tokens</span></div>
+            <div><strong>${DOMPurify.sanitize(model.id)}</strong> | <span>${model.context_length || '???'} tokens</span></div>
             <div><small>${DOMPurify.sanitize(model.description)}</small></div>
         </div>
     `));
@@ -920,6 +922,10 @@ export function getCurrentDreamGenModelTokenizer() {
         return tokenizers.YI;
     } else if (model.id.startsWith('opus-v1-xl')) {
         return tokenizers.LLAMA;
+    } else if (model.id.startsWith('lucid-v1-medium')) {
+        return tokenizers.NEMO;
+    } else if (model.id.startsWith('lucid-v1-extra-large')) {
+        return tokenizers.LLAMA3;
     } else {
         return tokenizers.MISTRAL;
     }

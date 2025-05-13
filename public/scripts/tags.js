@@ -13,7 +13,6 @@ import {
     DEFAULT_PRINT_TIMEOUT,
     printCharacters,
 } from '../script.js';
-// eslint-disable-next-line no-unused-vars
 import { FILTER_TYPES, FILTER_STATES, DEFAULT_FILTER_STATE, isFilterState, FilterHelper } from './filters.js';
 
 import { groupCandidatesFilter, groups, selected_group } from './group-chats.js';
@@ -28,7 +27,7 @@ import { debounce_timeout } from './constants.js';
 import { INTERACTABLE_CONTROL_CLASS } from './keyboard.js';
 import { commonEnumProviders } from './slash-commands/SlashCommandCommonEnumsProvider.js';
 import { renderTemplateAsync } from './templates.js';
-import { t } from './i18n.js';
+import { t, translate } from './i18n.js';
 
 export {
     TAG_FOLDER_TYPES,
@@ -319,7 +318,7 @@ function getTagBlock(tag, entities, hidden = 0, isUseless = false) {
     template.find('.avatar').css({ 'background-color': tag.color, 'color': tag.color2 }).attr('title', `[Folder] ${tag.name}`);
     template.find('.ch_name').text(tag.name).attr('title', `[Folder] ${tag.name}`);
     template.find('.bogus_folder_hidden_counter').text(hidden > 0 ? `${hidden} hidden` : '');
-    template.find('.bogus_folder_counter').text(`${count} ${count != 1 ? 'characters' : 'character'}`);
+    template.find('.bogus_folder_counter').text(`${count} ` + (count != 1 ? t`characters` : t`character`));
     template.find('.bogus_folder_icon').addClass(tagFolder.fa_icon);
     if (isUseless) template.addClass('useless');
 
@@ -410,7 +409,7 @@ function getInlineListSelector() {
         return `.group_select[grid="${selected_group}"] .tags`;
     }
 
-    if (this_chid && menu_type === 'character_edit') {
+    if (this_chid !== undefined && menu_type === 'character_edit') {
         return `.character_select[chid="${this_chid}"] .tags`;
     }
 
@@ -485,8 +484,8 @@ export function getTagKeyForEntityElement(element) {
     }
     // Start with the given element and traverse up the DOM tree
     while (element.length && element.parent().length) {
-        const grid = element.attr('grid');
-        const chid = element.attr('chid');
+        const grid = element.attr('data-grid');
+        const chid = element.attr('data-chid');
         if (grid || chid) {
             const id = grid || chid;
             return getTagKeyForEntity(id);
@@ -1058,7 +1057,7 @@ function appendTagToList(listElement, tag, { removable = false, isFilter = false
         tagElement.attr('title', tag.title);
     }
     if (tag.icon) {
-        tagElement.find('.tag_name').text('').attr('title', `${tag.name} ${tag.title || ''}`.trim()).addClass(tag.icon);
+        tagElement.find('.tag_name').text('').attr('title', `${translate(tag.name)} ${tag.title || ''}`.trim()).addClass(tag.icon);
         tagElement.addClass('actionable');
     }
 
@@ -1251,7 +1250,7 @@ function onCharacterCreateClick() {
 }
 
 function onGroupCreateClick() {
-    // Nothing to do here at the moment. Tags in group interface get automatically redrawn.
+    $('#groupTagList').empty();
 }
 
 export function applyTagsOnCharacterSelect(chid = null) {
@@ -1259,11 +1258,11 @@ export function applyTagsOnCharacterSelect(chid = null) {
     if (menu_type === 'create') {
         const currentTagIds = $('#tagList').find('.tag').map((_, el) => $(el).attr('id')).get();
         const currentTags = tags.filter(x => currentTagIds.includes(x.id));
-        printTagList($('#tagList'), { forEntityOrKey: null, tags: currentTags, tagOptions: { removable: true } });
+        printTagList($('#tagList'), { forEntityOrKey: undefined, tags: currentTags, tagOptions: { removable: true } });
         return;
     }
 
-    chid = chid ?? Number(this_chid);
+    chid = chid ?? (this_chid !== undefined ? Number(this_chid) : undefined);
     printTagList($('#tagList'), { forEntityOrKey: chid, tagOptions: { removable: true } });
 }
 
@@ -1272,11 +1271,11 @@ export function applyTagsOnGroupSelect(groupId = null) {
     if (menu_type === 'group_create') {
         const currentTagIds = $('#groupTagList').find('.tag').map((_, el) => $(el).attr('id')).get();
         const currentTags = tags.filter(x => currentTagIds.includes(x.id));
-        printTagList($('#groupTagList'), { forEntityOrKey: null, tags: currentTags, tagOptions: { removable: true } });
+        printTagList($('#groupTagList'), { forEntityOrKey: undefined, tags: currentTags, tagOptions: { removable: true } });
         return;
     }
 
-    groupId = groupId ?? Number(selected_group);
+    groupId = groupId ?? (selected_group ? Number(selected_group) : undefined);
     printTagList($('#groupTagList'), { forEntityOrKey: groupId, tagOptions: { removable: true } });
 }
 
@@ -1645,6 +1644,7 @@ function updateDrawTagFolder(element, tag) {
 
     // Draw/update css attributes for this class
     folderElement.attr('title', tagFolder.tooltip);
+    folderElement.attr('data-i18n', '[title]' + tagFolder.tooltip);
     const indicator = folderElement.find('.tag_folder_indicator');
     indicator.text(tagFolder.icon);
     indicator.css('color', tagFolder.color);
@@ -1656,14 +1656,7 @@ async function onTagDeleteClick() {
     const tag = tags.find(x => x.id === id);
     const otherTags = sortTags(tags.filter(x => x.id !== id).map(x => ({ id: x.id, name: x.name })));
 
-    const popupContent = $(`
-        <h3>Delete Tag</h3>
-        <div>Do you want to delete the tag <div id="tag_to_delete" class="tags_inline inline-flex margin-r2"></div>?</div>
-        <div class="m-t-2 marginBot5">If you want to merge all references to this tag into another tag, select it below:</div>
-        <select id="merge_tag_select">
-            <option value="">--- None ---</option>
-            ${otherTags.map(x => `<option value="${x.id}">${x.name}</option>`).join('')}
-        </select>`);
+    const popupContent = $(await renderTemplateAsync('deleteTag', { otherTags }));
 
     appendTagToList(popupContent.find('#tag_to_delete'), tag);
 
