@@ -22,15 +22,14 @@
         "world_info_budget_cap": 0
     },
     "textgenerationwebui_settings": {
-        "temp": 1,
-        "top_p": 0.95,
+        "temp": 0.5,
+        "top_p": 0.9,
         "top_k": 0,
         "top_a": 0,
         "tfs": 1,
         "epsilon_cutoff": 0,
         "eta_cutoff": 0,
         "typical_p": 1,
-        "min_p": 0.01,
         "rep_pen": 1.1,
         "rep_pen_range": 0,
         "no_repeat_ngram_size": 0,
@@ -161,6 +160,8 @@
             "macro": true,
             "names_behavior": "force",
             "activation_regex": "",
+            "system_sequence_prefix": "",
+            "system_sequence_suffix": "",
             "first_output_sequence": "",
             "skip_examples": false,
             "output_suffix": "\n\n",
@@ -431,7 +432,6 @@
         "rep_pen": 1.1,
         "rep_pen_range": 600,
         "top_p": 0.95,
-        "min_p": 0.01,
         "top_a": 0,
         "top_k": 0,
         "typical": 1,
@@ -463,6 +463,7 @@
         "stream_openai": true,
         "openai_max_context": 4095,
         "openai_max_tokens": 300,
+        "wrap_in_quotes": false,
         "prompts": [
             {
                 "name": "Main Prompt",
@@ -621,8 +622,9 @@
         },
         "wi_format": "{0}",
         "openai_model": "gpt-4-turbo",
-        "claude_model": "claude-sonnet-4-5",
+        "claude_model": "claude-3-5-sonnet-20240620",
         "ai21_model": "jamba-large",
+        "windowai_model": "",
         "openrouter_model": "OR_Website",
         "reverse_proxy": "",
         "chat_completion_source": "openai",
@@ -631,8 +633,6 @@
         "show_external_models": false,
         "proxy_password": "",
         "assistant_prefill": "",
-        "assistant_impersonation": "",
-        "use_sysprompt": false,
-        "squash_system_messages": false
+        "assistant_impersonation": ""
     }
 }
