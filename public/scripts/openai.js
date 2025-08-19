@@ -4334,10 +4334,12 @@ function getMistralMaxContext(model, isUnlocked) {
     }
 
     const contextMap = {
+        'codestral-2405': 32768,
         'codestral-2411-rc5': 262144,
         'codestral-2412': 262144,
         'codestral-2501': 262144,
-        'codestral-latest': 262144,
+        'codestral-2508': 256000,
+        'codestral-latest': 256000,
         'codestral-mamba-2407': 262144,
         'codestral-mamba-latest': 262144,
         'open-codestral-mamba': 262144,
@@ -4360,13 +4362,13 @@ function getMistralMaxContext(model, isUnlocked) {
         'pixtral-large-latest': 131072,
         'open-mixtral-8x22b': 65536,
         'open-mixtral-8x22b-2404': 65536,
-        'codestral-2405': 32768,
         'mistral-embed': 32768,
         'mistral-large-2402': 32768,
         'mistral-medium': 131072,
         'mistral-medium-2312': 32768,
         'mistral-medium-2505': 131072,
-        'mistral-medium-latest': 131072,
+        'mistral-medium-2508': 262144,
+        'mistral-medium-latest': 262144,
         'mistral-moderation-2411': 32768,
         'mistral-moderation-latest': 32768,
         'mistral-ocr-2503': 32768,
@@ -5354,6 +5356,7 @@ export function isImageInliningSupported() {
         'mistral-small-latest',
         'mistral-medium-latest',
         'mistral-medium-2505',
+        'mistral-medium-2508',
         'pixtral',
         // xAI (Grok)
         'grok-2-vision',
