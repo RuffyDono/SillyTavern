@@ -48,37 +48,21 @@ import {
     printMessages,
     clearChat,
     unshallowCharacter,
-    deleteLastMessage,
-    getCharacterCardFields,
-    swipe_right,
-    swipe_left,
-    generateRaw,
-    showSwipeButtons,
-    hideSwipeButtons,
-    deleteMessage,
-    refreshSwipeButtons,
-    swipe,
-    isSwipingAllowed,
-    swipeState,
-    ensureMessageMediaIsArray,
-    getMediaDisplay,
-    getMediaIndex,
-    scrollChatToBottom,
-    scrollOnMediaLoad,
 } from '../script.js';
 import {
     extension_settings,
     ModuleWorkerWrapper,
-    openThirdPartyExtensionMenu,
     renderExtensionTemplate,
     renderExtensionTemplateAsync,
-    saveMetadataDebounced,
     writeExtensionField,
 } from './extensions.js';
 import { groups, openGroupChat, selected_group, unshallowGroupMembers } from './group-chats.js';
 import { addLocaleData, getCurrentLocale, t, translate } from './i18n.js';
 import { hideLoader, showLoader } from './loader.js';
 import { MacrosParser } from './macros.js';
+import { MacroEngine } from './macros/MacroEngine.js';
+import { MacroLexer } from './macros/MacroLexer.js';
+import { MacroParser } from './macros/MacroParser.js';
 import { getChatCompletionModel, oai_settings } from './openai.js';
 import { callGenericPopup, Popup, POPUP_RESULT, POPUP_TYPE } from './popup.js';
 import { power_user, registerDebugFunction } from './power-user.js';
@@ -96,11 +80,9 @@ import { ToolManager } from './tool-calling.js';
 import { accountStorage } from './util/AccountStorage.js';
 import { timestampToMoment, uuidv4 } from './utils.js';
 import { getGlobalVariable, getLocalVariable, setGlobalVariable, setLocalVariable } from './variables.js';
-import { convertCharacterBook, getWorldInfoPrompt, loadWorldInfo, reloadEditor, saveWorldInfo, updateWorldInfoList } from './world-info.js';
+import { convertCharacterBook, loadWorldInfo, saveWorldInfo, updateWorldInfoList } from './world-info.js';
 import { ChatCompletionService, TextCompletionService } from './custom-request.js';
-import { ConnectionManagerRequestService } from './extensions/shared.js';
-import { updateReasoningUI, parseReasoningFromString } from './reasoning.js';
-import { IGNORE_SYMBOL } from './constants.js';
+import { updateReasoningUI } from './reasoning.js';
 
 export function getContext() {
     return {
@@ -123,13 +105,10 @@ export function getContext() {
         onlineStatus: online_status,
         maxContext: Number(max_context),
         chatMetadata: chat_metadata,
-        saveMetadataDebounced,
         streamingProcessor,
         eventSource,
         eventTypes: event_types,
         addOneMessage,
-        deleteLastMessage,
-        deleteMessage,
         generate: Generate,
         sendStreamingRequest,
         sendGenerationRequest,
@@ -171,7 +150,6 @@ export function getContext() {
         unregisterFunctionTool: ToolManager.unregisterFunctionTool.bind(ToolManager),
         isToolCallingSupported: ToolManager.isToolCallingSupported.bind(ToolManager),
         canPerformToolCalls: ToolManager.canPerformToolCalls.bind(ToolManager),
-        ToolManager,
         registerDebugFunction,
         /** @deprecated Use renderExtensionTemplateAsync instead. */
         renderExtensionTemplate,
@@ -187,7 +165,6 @@ export function getContext() {
         ModuleWorkerWrapper,
         getTokenizerModel,
         generateQuietPrompt,
-        generateRaw,
         writeExtensionField,
         getThumbnailUrl,
         selectCharacterById,
@@ -211,25 +188,14 @@ export function getContext() {
         textCompletionSettings: textgenerationwebui_settings,
         powerUserSettings: power_user,
         getCharacters,
-        getCharacterCardFields,
         uuidv4,
         humanizedDateTime,
         updateMessageBlock,
         appendMediaToMessage,
-        ensureMessageMediaIsArray,
-        getMediaDisplay,
-        getMediaIndex,
-        scrollChatToBottom,
-        scrollOnMediaLoad,
-        swipe: {
-            left: swipe_left,
-            right: swipe_right,
-            to: swipe,
-            show: showSwipeButtons,
-            hide: hideSwipeButtons,
-            refresh: refreshSwipeButtons,
-            isAllowed: isSwipingAllowed,
-            state: () => swipeState,
+        macros: {
+            MacroLexer,
+            MacroParser,
+            MacroEngine,
         },
         variables: {
             local: {
@@ -243,10 +209,8 @@ export function getContext() {
         },
         loadWorldInfo,
         saveWorldInfo,
-        reloadWorldInfoEditor: reloadEditor,
         updateWorldInfoList,
         convertCharacterBook,
-        getWorldInfoPrompt,
         CONNECT_API_MAP,
         getTextGenServer,
         extractMessageFromData,
@@ -256,15 +220,9 @@ export function getContext() {
         clearChat,
         ChatCompletionService,
         TextCompletionService,
-        ConnectionManagerRequestService,
         updateReasoningUI,
-        parseReasoningFromString,
         unshallowCharacter,
         unshallowGroupMembers,
-        openThirdPartyExtensionMenu,
-        symbols: {
-            ignore: IGNORE_SYMBOL,
-        },
     };
 }
 

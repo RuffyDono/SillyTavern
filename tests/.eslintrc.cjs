@@ -2,12 +2,9 @@ module.exports = {
     root: true,
     plugins: [
         'jest',
-        'playwright',
     ],
     extends: [
         'eslint:recommended',
-        'plugin:jest/recommended',
-        'plugin:playwright/recommended',
     ],
     env: {
         es6: true,
@@ -16,7 +13,6 @@ module.exports = {
     },
     parserOptions: {
         ecmaVersion: 'latest',
-        sourceType: 'module',
     },
     overrides: [
     ],
@@ -25,6 +21,11 @@ module.exports = {
         'node_modules/**/*',
     ],
     globals: {
+        browser: 'readonly',
+        page: 'readonly',
+        context: 'readonly',
+        puppeteerConfig: 'readonly',
+        jestPuppeteer: 'readonly',
     },
     rules: {
         'no-unused-vars': ['error', { args: 'none' }],
@@ -45,10 +46,5 @@ module.exports = {
         // These rules should eventually be enabled.
         'no-async-promise-executor': 'off',
         'no-inner-declarations': 'off',
-    },
-    settings: {
-        jest: {
-            version: 29,
-        },
     },
 };
